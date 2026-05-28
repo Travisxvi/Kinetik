@@ -229,17 +229,29 @@ btnSplit.addEventListener('click', async () => {
       showToast(`Confirming split on Arc...`);
       // Mock addresses for friends
       const mockFriends = Array(selectedFriends).fill("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
-      const tx = await kinetikContract.settleSplit(
-        mockFriends,
-        ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000 }
-      );
+      
+      // Calculate total native tokens needed (0.0001 * number of friends)
+      const amountPerFriend = ethers.parseUnits("0.0001", 18);
+      const totalValue = ethers.parseUnits((0.0001 * selectedFriends).toFixed(4), 18);
+      
+      const txData = kinetikContract.interface.encodeFunctionData("settleSplit", [mockFriends, amountPerFriend]);
+      const fromAddress = await signer.getAddress();
+      
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: fromAddress,
+          to: KINETIK_CONTRACT_ADDRESS,
+          value: ethers.toBeHex(totalValue),
+          data: txData
+        }],
+      });
       
       showToast(`Transaction sent! Waiting...`);
-      await tx.wait();
-      
-      updateMainBalance(totalPaidToFriends);
-      showToast(`Settled $${totalPaidToFriends.toFixed(2)} instantly via Arc`);
+      setTimeout(() => {
+        updateMainBalance(totalPaidToFriends);
+        showToast(`Settled $${totalPaidToFriends.toFixed(2)} instantly via Arc`);
+      }, 4000);
     } catch (err) {
       console.error(err);
       showToast("Transaction Failed / Rejected");
@@ -261,25 +273,36 @@ playBtn.addEventListener('click', async () => {
     
     try {
       showToast(`Opening stream on Arc...`);
-      const tx = await kinetikContract.openStream(
+      const txData = kinetikContract.interface.encodeFunctionData("openStream", [
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-        ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 }
-      );
+        ethers.parseUnits("0.0001", 18)
+      ]);
+      const fromAddress = await signer.getAddress();
+      
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: fromAddress,
+          to: KINETIK_CONTRACT_ADDRESS,
+          value: "0x38D7EA4C68000", // 0.0001 ETH
+          data: txData
+        }],
+      });
       
       showToast(`Transaction sent! Waiting...`);
-      await tx.wait();
-      showToast(`Stream Opened!`);
       
-      // Start visual tick
-      isPlaying = true;
-      playBtn.textContent = '⏸';
-      playBtn.style.color = '#22d3ee';
-      streamInterval = setInterval(() => {
-        streamCost += RATE_PER_SECOND;
-        streamCostEl.textContent = '$' + streamCost.toFixed(4);
-        updateMainBalance(RATE_PER_SECOND);
-      }, 1000);
+      setTimeout(() => {
+        showToast(`Stream Opened!`);
+        // Start visual tick
+        isPlaying = true;
+        playBtn.textContent = '⏸';
+        playBtn.style.color = '#22d3ee';
+        streamInterval = setInterval(() => {
+          streamCost += RATE_PER_SECOND;
+          streamCostEl.textContent = '$' + streamCost.toFixed(4);
+          updateMainBalance(RATE_PER_SECOND);
+        }, 1000);
+      }, 3000);
       
     } catch (err) {
       console.error(err);

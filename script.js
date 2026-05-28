@@ -97,89 +97,77 @@ function updateMainBalance(amount) {
 const connectWalletBtn = document.getElementById('connect-wallet-btn');
 
 if (connectWalletBtn) {
-  async function initializeWalletConnection(providerObj) {
-    provider = new ethers.BrowserProvider(providerObj, 'any');
-    signer = await provider.getSigner();
-    kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
-    
-    const address = await signer.getAddress();
-    connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
-    connectWalletBtn.style.background = 'var(--accent)';
-    connectWalletBtn.style.color = '#000';
-    balanceEl.textContent = "500.00"; // Mock testnet balance
-    mainBalance = 500.00;
+  // Extremely robust, standard Web3 connection
+  async function connectWallet(isAuto = false) {
+    if (!window.ethereum) {
+      if (!isAuto) showToast("MetaMask is not installed!");
+      return;
+    }
+
+    try {
+      // 1. Request accounts
+      const accounts = await window.ethereum.request({ 
+        method: isAuto ? 'eth_accounts' : 'eth_requestAccounts' 
+      });
+      
+      if (!accounts || accounts.length === 0) {
+        if (!isAuto) showToast("Please unlock MetaMask!");
+        return;
+      }
+      
+      const userAddress = accounts[0];
+
+      // 2. Enforce Arc Testnet
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x4cef52' }], // Hex for 5042002
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x4cef52',
+              chainName: 'Arc Testnet',
+              rpcUrls: ['https://rpc.testnet.arc.network'],
+              nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 }
+            }],
+          });
+        }
+      }
+
+      // 3. Initialize Contract
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner(userAddress);
+      kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
+      
+      // 4. Update UI
+      connectWalletBtn.textContent = userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+      connectWalletBtn.style.background = 'var(--accent)';
+      connectWalletBtn.style.color = '#000';
+      balanceEl.textContent = "500.00"; 
+      mainBalance = 500.00;
+      
+      if (!isAuto) showToast("Connected to Arc Testnet!");
+
+    } catch (err) {
+      console.error("Connection Error:", err);
+      if (!isAuto) {
+        if (err.code === 4001) {
+          showToast("You rejected the connection.");
+        } else {
+          showToast("Please open your wallet extension to connect.");
+        }
+      }
+    }
   }
 
-  // Auto-connect on page load if wallet is already unlocked and connected!
-  // This is a great hackathon trick so you don't even need to click the connect button on stage.
-  window.addEventListener('DOMContentLoaded', async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts && accounts.length > 0) {
-          await initializeWalletConnection(window.ethereum);
-          console.log("Auto-connected on page load!");
-        }
-      } catch (err) {
-        console.error("Auto-connect failed quietly", err);
-      }
-    }
-  });
+  // Auto-connect on load
+  window.addEventListener('DOMContentLoaded', () => connectWallet(true));
 
-  connectWalletBtn.addEventListener('click', async () => {
-    if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
-      try {
-        const ethProvider = window.ethereum;
-
-        // Force the MetaMask popup to automatically appear!
-        await ethProvider.request({ method: 'eth_requestAccounts' });
-        
-        // Switch to Arc Testnet FIRST
-        try {
-          await ethProvider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: ethers.toBeHex(ARC_CHAIN_ID) }],
-          });
-        } catch (switchError) {
-          if (switchError.code === 4902) {
-            await ethProvider.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: ethers.toBeHex(ARC_CHAIN_ID),
-                chainName: 'Arc Testnet',
-                rpcUrls: [ARC_RPC_URL],
-                nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 } // Standardized to ARC
-              }],
-            });
-          } else {
-            throw switchError; // Throw if user rejected the switch
-          }
-        }
-        
-        // Wait briefly for the wallet's internal state to update
-        await new Promise(r => setTimeout(r, 500));
-        
-        await initializeWalletConnection(ethProvider);
-        
-        // Ensure wallet actually switched successfully before proceeding
-        const currentNetwork = await provider.getNetwork();
-        if (Number(currentNetwork.chainId) !== ARC_CHAIN_ID) {
-           showToast("Warning: Wallet did not switch to Arc Testnet!");
-        } else {
-           showToast("Wallet Connected to Arc Testnet!");
-        }
-        
-      } catch (err) {
-        console.error("Connection Error:", err);
-        // Show the exact error message so we know what failed
-        let errorMsg = "Connection Failed!";
-        if (err.message) errorMsg = err.message.substring(0, 40);
-        showToast(errorMsg);
-      }
-    } else {
-      showToast("Please install MetaMask!");
-    }
-  });
+  // Connect on button click
+  connectWalletBtn.addEventListener('click', () => connectWallet(false));
 }
 
 // Wallet Modal Logic

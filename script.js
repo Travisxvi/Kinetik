@@ -4,6 +4,23 @@ const appInterface = document.getElementById('app-interface');
 const featureCards = document.querySelectorAll('.feature-card');
 const backToHome = document.getElementById('back-to-home');
 
+// Web3 Configuration
+const ARC_RPC_URL = "https://rpc.testnet.arc.network";
+const ARC_CHAIN_ID = 5042002;
+const KINETIK_CONTRACT_ADDRESS = "0xYourContractAddressHere"; // User will fill this in after deploying on Remix
+
+const kinetikABI = [
+  "function sendTip(address creator, uint256 amount) external",
+  "function settleSplit(address[] calldata friends, uint256 amountPerFriend) external",
+  "function openStream(address receiver, uint256 ratePerSecond, uint256 deposit) external returns (bytes32)",
+  "function closeStream(bytes32 streamId) external"
+];
+
+let isLiveMode = false;
+let provider;
+let signer;
+let kinetikContract;
+
 // Tab Navigation
 const navItems = document.querySelectorAll('.nav-item');
 const tabPanes = document.querySelectorAll('.tab-pane');
@@ -75,6 +92,75 @@ function updateMainBalance(amount) {
   const formattedStr = mainBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
   balanceEl.textContent = formattedStr;
   if(modalFullBalance) modalFullBalance.textContent = formattedStr;
+}
+
+// Live Mode Toggle & Wallet Connection Logic
+const modeToggle = document.getElementById('live-mode-toggle');
+const modeLabel = document.getElementById('mode-label');
+const connectWalletBtn = document.getElementById('connect-wallet-btn');
+
+if (modeToggle) {
+  modeToggle.addEventListener('change', (e) => {
+    isLiveMode = e.target.checked;
+    if (isLiveMode) {
+      modeLabel.textContent = "Live";
+      document.querySelector('.mode-toggle').classList.add('live');
+      connectWalletBtn.style.display = 'block';
+      balanceEl.textContent = "0.00"; // Reset until connected
+    } else {
+      modeLabel.textContent = "Demo";
+      document.querySelector('.mode-toggle').classList.remove('live');
+      connectWalletBtn.style.display = 'none';
+      balanceEl.textContent = mainBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
+    }
+  });
+}
+
+if (connectWalletBtn) {
+  connectWalletBtn.addEventListener('click', async () => {
+    if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
+      try {
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // Switch to Arc Testnet
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: ethers.toBeHex(ARC_CHAIN_ID) }],
+          });
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: ethers.toBeHex(ARC_CHAIN_ID),
+                chainName: 'Arc Testnet',
+                rpcUrls: [ARC_RPC_URL],
+                nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 }
+              }],
+            });
+          }
+        }
+        
+        signer = await provider.getSigner();
+        kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
+        
+        const address = await signer.getAddress();
+        connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
+        showToast("Wallet Connected to Arc Testnet!");
+        
+        balanceEl.textContent = "500.00"; // Mock USDC testnet balance
+        mainBalance = 500.00;
+        
+      } catch (error) {
+        console.error("Connection failed", error);
+        showToast("Connection failed");
+      }
+    } else {
+      showToast("Please install MetaMask!");
+    }
+  });
 }
 
 // Wallet Modal Logic
@@ -179,13 +265,29 @@ playBtn.addEventListener('click', () => {
 });
 
 // --- TAB 3: TIP LOGIC ---
-const tipBtns = document.querySelectorAll('.tip-btn');
-
-tipBtns.forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    const amount = parseFloat(btn.getAttribute('data-amount'));
-    updateMainBalance(amount);
-    showToast(`Sent $${amount.toFixed(2)} Tip`);
+// Simple Tip Integration
+document.querySelectorAll('.tip-btn').forEach(btn => {
+  btn.addEventListener('click', async (e) => {
+    const creator = e.target.parentElement.querySelector('h3').innerText;
+    
+    if (isLiveMode) {
+      if (!signer) return showToast("Connect Wallet First!");
+      if (KINETIK_CONTRACT_ADDRESS === "0xYourContractAddressHere") return showToast("Deploy Contract First!");
+      try {
+        showToast(`Confirming tip to ${creator} on Arc...`);
+        // Mock recipient address for the demo
+        const tx = await kinetikContract.sendTip("0x742d35Cc6634C0532925a3b844Bc454e4438f44e", ethers.parseUnits("5", 18));
+        await tx.wait();
+        showToast(`Tx Confirmed! Tipped ${creator}`);
+        updateMainBalance(5);
+      } catch (err) {
+        console.error(err);
+        showToast("Transaction Failed / Rejected");
+      }
+    } else {
+      updateMainBalance(5);
+      showToast(`Sent 5 USDC to ${creator}!`);
+    }
     
     // Add simple click animation
     btn.style.transform = 'scale(0.9)';

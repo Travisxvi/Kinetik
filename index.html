@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kinetik | Arc Payments</title>
   <link rel="stylesheet" href="index.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Preload feature backgrounds to ensure instant display -->
   <link rel="preload" as="image" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop">
   <link rel="preload" as="image" href="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop">
   <link rel="preload" as="image" href="https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=1200&auto=format&fit=crop">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 </head>
 <body>
 
@@ -73,9 +70,19 @@
         <button class="nav-item" data-target="tab-tip">Tip</button>
       </nav>
 
-      <div class="balance-pill" id="balance-pill" title="View Wallet & Fund">
-        <span class="currency">USDC</span>
-        <span class="amount" id="user-balance">1,402.50</span>
+      <div class="header-controls">
+        <div class="mode-toggle">
+          <label class="switch">
+            <input type="checkbox" id="live-mode-toggle">
+            <span class="slider round"></span>
+          </label>
+          <span id="mode-label">Demo</span>
+        </div>
+        <button class="connect-btn" id="connect-wallet-btn" style="display: none;">Connect</button>
+        <div class="balance-pill" id="balance-pill" title="View Wallet & Fund">
+          <span class="currency">USDC</span>
+          <span class="amount" id="user-balance">1,402.50</span>
+        </div>
       </div>
     </header>
 

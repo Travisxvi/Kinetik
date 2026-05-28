@@ -101,9 +101,8 @@ if (connectWalletBtn) {
     if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
       try {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
-        provider = new ethers.BrowserProvider(window.ethereum);
         
-        // Switch to Arc Testnet
+        // Switch to Arc Testnet FIRST
         try {
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -123,6 +122,11 @@ if (connectWalletBtn) {
           }
         }
         
+        // Wait briefly for the wallet's internal state to update to the new chain
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Initialize Ethers ONLY AFTER the chain has successfully switched
+        provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
         

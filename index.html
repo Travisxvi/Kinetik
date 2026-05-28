@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kinetik | Arc Payments</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Preload feature backgrounds to ensure instant display -->
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop">
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop">
+  <link rel="preload" as="image" href="https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=1200&auto=format&fit=crop">
+</head>
+<body>
+
+  <!-- Pre-rendered Feature Backgrounds to eliminate glitches -->
+  <div id="bg-layer-split" class="feature-bg"></div>
+  <div id="bg-layer-stream" class="feature-bg"></div>
+  <div id="bg-layer-tip" class="feature-bg"></div>
+  <div class="feature-bg-overlay"></div>
+
+  <!-- Landing Page -->
+  <section id="landing-page" class="view-section active">
+    <div class="hero-bg">
+      <video autoplay muted loop playsinline id="bg-video" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+        <source src="https://assets.codepen.io/3364143/7btrrd.mp4" type="video/mp4">
+      </video>
+      <div class="video-color-corrector"></div>
+      <div class="video-overlay"></div>
+    </div>
+    <div class="hero-content">
+      <div class="logo-large">
+        <div class="logo-circle"></div>
+        <h1>Kinetik</h1>
+      </div>
+      <h2 class="hero-title">The Economic OS for the Internet.</h2>
+      <p class="hero-desc">Experience sub-second finality and zero-gas friction powered by Arc. Kinetik is the unified social payments super-app combining splitting, streaming, and tipping into one seamless interface.</p>
+      
+      <div class="feature-cards">
+        <div class="feature-card" data-target="tab-split">
+          <div class="card-icon">💸</div>
+          <h3>Split Bill</h3>
+          <p>Instantly settle expenses with friends. No more IOUs.</p>
+        </div>
+        <div class="feature-card" data-target="tab-stream">
+          <div class="card-icon">⏳</div>
+          <h3>Pay-per-second</h3>
+          <p>Micro-streaming. You only pay for what you watch.</p>
+        </div>
+        <div class="feature-card" data-target="tab-tip">
+          <div class="card-icon">⚡</div>
+          <h3>Discover & Tip</h3>
+          <p>Send instant 1-click micro-tips to creators globally.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- App Interface -->
+  <section id="app-interface" class="view-section">
+    <header class="app-header">
+      <div class="logo" id="back-to-home" style="cursor: pointer;" title="Back to Home">
+        <div class="logo-circle"></div>
+        <h1>Kinetik</h1>
+      </div>
+      
+      <nav class="top-nav">
+        <button class="nav-item home-btn" id="explicit-home-btn">← Home</button>
+        <button class="nav-item active" data-target="tab-split">Split</button>
+        <button class="nav-item" data-target="tab-stream">Stream</button>
+        <button class="nav-item" data-target="tab-tip">Tip</button>
+      </nav>
+
+      <div class="balance-pill" id="balance-pill" title="View Wallet & Fund">
+        <span class="currency">USDC</span>
+        <span class="amount" id="user-balance">1,402.50</span>
+      </div>
+    </header>
+
+    <main id="app-content" class="content-area">
+      <!-- SPLIT TAB -->
+      <section id="tab-split" class="tab-pane active">
+        <div class="header-text text-center">
+          <h2>Split Bill</h2>
+          <p>Instantly settle expenses with Arc.</p>
+        </div>
+        <div class="glass-card full-width-card">
+          <div class="input-group">
+            <span class="dollar-sign">$</span>
+            <input type="number" id="split-amount" placeholder="0.00" value="120.00">
+          </div>
+          <div class="friends-list">
+            <div class="friend-item selected">
+              <img src="https://i.pravatar.cc/150?img=11" alt="Alex" class="avatar">
+              <span>Alex</span>
+            </div>
+            <div class="friend-item selected">
+              <img src="https://i.pravatar.cc/150?img=47" alt="Sarah" class="avatar">
+              <span>Sarah</span>
+            </div>
+            <div class="friend-item">
+              <img src="https://i.pravatar.cc/150?img=33" alt="Mike" class="avatar">
+              <span>Mike</span>
+            </div>
+            <div class="friend-item">
+              <img src="https://i.pravatar.cc/150?img=12" alt="John" class="avatar">
+              <span>John</span>
+            </div>
+             <div class="friend-item">
+              <img src="https://i.pravatar.cc/150?img=5" alt="Emma" class="avatar">
+              <span>Emma</span>
+            </div>
+          </div>
+          <div class="split-result">
+            <span>Each pays:</span>
+            <span class="split-value">$40.00</span>
+          </div>
+          <button class="primary-btn" id="btn-split">Split & Settle</button>
+        </div>
+      </section>
+
+      <!-- STREAM TAB -->
+      <section id="tab-stream" class="tab-pane">
+        <div class="header-text text-center">
+          <h2>Pay-per-second</h2>
+          <p>You only pay for what you watch.</p>
+        </div>
+        <div class="video-container full-width-card">
+          <div class="video-placeholder" id="video-player">
+            <div class="play-btn-large" id="play-pause-btn">▶</div>
+          </div>
+          <div class="stream-stats glass-card">
+            <div class="stat-row">
+              <span>Rate:</span>
+              <span class="highlight">$0.001 / sec</span>
+            </div>
+            <div class="stat-row">
+              <span>Total Cost:</span>
+              <span class="live-money" id="stream-cost">$0.0000</span>
+            </div>
+            <div class="stat-row">
+              <span>Network:</span>
+              <span class="status-indicator"><span class="dot"></span> Arc Finality</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TIP TAB -->
+      <section id="tab-tip" class="tab-pane">
+        <div class="header-text text-center">
+          <h2>Discover</h2>
+          <p>Instant micro-tips to creators.</p>
+        </div>
+        <div class="creator-grid">
+          <div class="creator-card glass-card">
+            <div class="creator-info">
+              <img src="https://i.pravatar.cc/150?img=68" alt="Creator" class="avatar-large">
+              <div>
+                <h3>ElenaTech</h3>
+                <p>Just published: "Arc Architecture"</p>
+              </div>
+            </div>
+            <div class="tip-actions">
+              <button class="tip-btn" data-amount="0.50">$0.50</button>
+              <button class="tip-btn" data-amount="1.00">$1.00</button>
+              <button class="tip-btn" data-amount="5.00">$5.00</button>
+            </div>
+          </div>
+          
+          <div class="creator-card glass-card">
+            <div class="creator-info">
+              <img src="https://i.pravatar.cc/150?img=59" alt="Creator" class="avatar-large">
+              <div>
+                <h3>DevMarcus</h3>
+                <p>Building Smart Contracts</p>
+              </div>
+            </div>
+            <div class="tip-actions">
+              <button class="tip-btn" data-amount="0.50">$0.50</button>
+              <button class="tip-btn" data-amount="1.00">$1.00</button>
+              <button class="tip-btn" data-amount="5.00">$5.00</button>
+            </div>
+          </div>
+          
+          <div class="creator-card glass-card">
+            <div class="creator-info">
+              <img src="https://i.pravatar.cc/150?img=32" alt="Creator" class="avatar-large">
+              <div>
+                <h3>CryptoSarah</h3>
+                <p>Web3 Market Analysis</p>
+              </div>
+            </div>
+            <div class="tip-actions">
+              <button class="tip-btn" data-amount="0.50">$0.50</button>
+              <button class="tip-btn" data-amount="1.00">$1.00</button>
+              <button class="tip-btn" data-amount="5.00">$5.00</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </section>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast">Payment Sent!</div>
+
+  <!-- Wallet Funding Modal -->
+  <div id="wallet-modal" class="modal-overlay">
+    <div class="modal-content glass-card">
+      <button class="close-modal" id="close-wallet-modal">&times;</button>
+      <h2>Wallet Balance</h2>
+      <div class="full-balance-display">
+        <span class="currency-large">USDC</span>
+        <span class="amount-large" id="modal-full-balance">1,402.50</span>
+      </div>
+      <div class="badges-row">
+        <p class="network-badge"><span class="dot"></span> Arc Network</p>
+        <p class="security-badge">🛡 MPC Secured</p>
+      </div>
+      
+      <div class="funding-section">
+        <h3>Fund Your Account</h3>
+        <div class="qr-placeholder">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=arc:0x742d35Cc6634C0532925a3b844Bc454e4438f44e" alt="Wallet QR">
+        </div>
+        <p class="wallet-address">0x742...f44e</p>
+        <button class="secondary-btn" onclick="navigator.clipboard.writeText('0x742d35Cc6634C0532925a3b844Bc454e4438f44e'); showToast('Address Copied!')">Copy Address</button>
+        
+        <div class="fund-options">
+          <button class="fund-btn">Deposit via CCTP</button>
+          <button class="fund-btn">Buy with Card</button>
+        </div>
+        
+        <div class="backup-section">
+          <p class="backup-text">Wallet generated instantly. Backup your MPC shard to iCloud via Passkey to prevent loss of funds.</p>
+          <button class="passkey-btn" onclick="showToast('Passkey Verified & Backed Up')">
+            <span class="fingerprint-icon">👆</span> Backup with Passkey
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

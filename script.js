@@ -97,26 +97,42 @@ function updateMainBalance(amount) {
 const connectWalletBtn = document.getElementById('connect-wallet-btn');
 
 if (connectWalletBtn) {
+  async function initializeWalletConnection(providerObj) {
+    provider = new ethers.BrowserProvider(providerObj, 'any');
+    signer = await provider.getSigner();
+    kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
+    
+    const address = await signer.getAddress();
+    connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
+    connectWalletBtn.style.background = 'var(--accent)';
+    connectWalletBtn.style.color = '#000';
+    balanceEl.textContent = "500.00"; // Mock testnet balance
+    mainBalance = 500.00;
+  }
+
+  // Auto-connect on page load if wallet is already unlocked and connected!
+  // This is a great hackathon trick so you don't even need to click the connect button on stage.
+  window.addEventListener('DOMContentLoaded', async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts && accounts.length > 0) {
+          await initializeWalletConnection(window.ethereum);
+          console.log("Auto-connected on page load!");
+        }
+      } catch (err) {
+        console.error("Auto-connect failed quietly", err);
+      }
+    }
+  });
+
   connectWalletBtn.addEventListener('click', async () => {
     if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
       try {
-        let ethProvider = window.ethereum;
-        if (window.ethereum.providers) {
-          // Many wallets (like Zerion) falsely set isMetaMask=true to hijack connections.
-          // We must explicitly exclude them to find the true MetaMask extension.
-          ethProvider = window.ethereum.providers.find(p => p.isMetaMask && !p.isZerion && !p.isBraveWallet && !p.isCoinbaseWallet) || window.ethereum;
-        }
+        const ethProvider = window.ethereum;
 
-        // First check if already connected, otherwise request connection
-        let accounts = await ethProvider.request({ method: 'eth_accounts' });
-        if (!accounts || accounts.length === 0) {
-          accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
-        }
-        
-        // If still no accounts, the wallet is locked or rejecting the site
-        if (!accounts || accounts.length === 0) {
-          throw new Error("No accounts found. Please click the MetaMask extension icon to unlock it and manually connect to this site.");
-        }
+        // Force the MetaMask popup to automatically appear!
+        await ethProvider.request({ method: 'eth_requestAccounts' });
         
         // Switch to Arc Testnet FIRST
         try {
@@ -143,25 +159,15 @@ if (connectWalletBtn) {
         // Wait briefly for the wallet's internal state to update
         await new Promise(r => setTimeout(r, 500));
         
-        // Initialize Ethers with 'any' to handle dynamic network changes gracefully
-        provider = new ethers.BrowserProvider(ethProvider, 'any');
-        signer = await provider.getSigner();
-        kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
+        await initializeWalletConnection(ethProvider);
         
         // Ensure wallet actually switched successfully before proceeding
         const currentNetwork = await provider.getNetwork();
         if (Number(currentNetwork.chainId) !== ARC_CHAIN_ID) {
            showToast("Warning: Wallet did not switch to Arc Testnet!");
+        } else {
+           showToast("Wallet Connected to Arc Testnet!");
         }
-        
-        const address = await signer.getAddress();
-        connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
-        connectWalletBtn.style.background = 'var(--accent)';
-        connectWalletBtn.style.color = '#000';
-        showToast("Wallet Connected to Arc Testnet!");
-        
-        balanceEl.textContent = "500.00"; // Mock testnet balance
-        mainBalance = 500.00;
         
       } catch (err) {
         console.error("Connection Error:", err);

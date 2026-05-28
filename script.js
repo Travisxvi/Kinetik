@@ -125,10 +125,16 @@ if (connectWalletBtn) {
         // Wait briefly for the wallet's internal state to update to the new chain
         await new Promise(r => setTimeout(r, 500));
         
-        // Initialize Ethers ONLY AFTER the chain has successfully switched
-        provider = new ethers.BrowserProvider(window.ethereum);
+        // Initialize Ethers with 'any' to handle dynamic network changes gracefully
+        provider = new ethers.BrowserProvider(window.ethereum, 'any');
         signer = await provider.getSigner();
         kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
+        
+        // Ensure wallet actually switched successfully before proceeding
+        const currentNetwork = await provider.getNetwork();
+        if (Number(currentNetwork.chainId) !== ARC_CHAIN_ID) {
+           showToast("Warning: Wallet did not switch to Arc Testnet!");
+        }
         
         const address = await signer.getAddress();
         connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
@@ -226,7 +232,7 @@ btnSplit.addEventListener('click', async () => {
       const tx = await kinetikContract.settleSplit(
         mockFriends,
         ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000 }
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000, chainId: ARC_CHAIN_ID }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -258,7 +264,7 @@ playBtn.addEventListener('click', async () => {
       const tx = await kinetikContract.openStream(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
         ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 }
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000, chainId: ARC_CHAIN_ID }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -309,7 +315,7 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
       // to avoid 'insufficient balance' issues while pitching, but the UI updates properly!
       const tx = await kinetikContract.sendTip(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 } 
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000, chainId: ARC_CHAIN_ID } 
       );
       
       showToast(`Transaction sent! Waiting for confirmation...`);

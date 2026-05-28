@@ -7,12 +7,12 @@ const backToHome = document.getElementById('back-to-home');
 // Web3 Configuration
 const ARC_RPC_URL = "https://rpc.testnet.arc.network";
 const ARC_CHAIN_ID = 5042002;
-const KINETIK_CONTRACT_ADDRESS = "0x654D7cB8266785756F0a0bD5dafc2e50742e58B1";
+const KINETIK_CONTRACT_ADDRESS = "0xa742D387830e4727ea0E2D149B357e29B8E2f439";
 
 const kinetikABI = [
-  "function sendTip(address creator, uint256 amount) external",
-  "function settleSplit(address[] calldata friends, uint256 amountPerFriend) external",
-  "function openStream(address receiver, uint256 ratePerSecond, uint256 deposit) external returns (bytes32)",
+  "function sendTip(address creator) external payable",
+  "function settleSplit(address[] calldata friends, uint256 amountPerFriend) external payable",
+  "function openStream(address receiver, uint256 ratePerSecond) external payable returns (bytes32)",
   "function closeStream(bytes32 streamId) external"
 ];
 
@@ -222,7 +222,7 @@ btnSplit.addEventListener('click', async () => {
       const tx = await kinetikContract.settleSplit(
         mockFriends,
         ethers.parseUnits(myShare.toFixed(2), 18),
-        { gasLimit: 400000 }
+        { value: ethers.parseUnits(totalPaidToFriends.toFixed(2), 18), gasLimit: 400000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -254,8 +254,7 @@ playBtn.addEventListener('click', async () => {
       const tx = await kinetikContract.openStream(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
         ethers.parseUnits("0.001", 18),
-        ethers.parseUnits("100", 18), // Deposit
-        { gasLimit: 300000 }
+        { value: ethers.parseUnits("100", 18), gasLimit: 300000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -305,8 +304,7 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
       // We pass a manual gasLimit to force MetaMask to open, even if dry-run would fail due to mock USDC
       const tx = await kinetikContract.sendTip(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-        ethers.parseUnits(amountVal, 18),
-        { gasLimit: 300000 } 
+        { value: ethers.parseUnits(amountVal, 18), gasLimit: 300000 } 
       );
       
       showToast(`Transaction sent! Waiting for confirmation...`);

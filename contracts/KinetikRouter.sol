@@ -1,21 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.
-sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-/**
- * @title KinetikRouter
- * @dev The smart contract routing engine for the Kinetik Super-App on Arc.
- * Because Arc uses USDC for gas and has sub-second finality, 
- * this contract processes micro-payments, bill splits, and streaming seamlessly.
- */
-contract KinetikRouter is Ownable {
+contract KinetikRouter {
+    address public owner;
     
-    IERC20 public usdcToken;
-    
-    // Mapping to track active streams
     struct Stream {
         address sender;
         address receiver;
@@ -32,83 +20,62 @@ contract KinetikRouter is Ownable {
     event StreamOpened(bytes32 indexed streamId, address indexed from, address indexed to, uint256 rate);
     event StreamClosed(bytes32 indexed streamId, uint256 finalCost);
 
-    constructor(address _usdcTokenAddress) Ownable(msg.sender) {
-        usdcToken = IERC20(_usdcTokenAddress);
+    constructor() {
+        owner = msg.sender;
     }
 
-    /**
-     * @dev One-click micro-tip feature. Instant finality.
-     */
-    function sendTip(address creator, uint256 amount) external {
-        require(usdcToken.transferFrom(msg.sender, creator, amount), "Transfer failed");
-        emit TipSent(msg.sender, creator, amount);
+    function sendTip(address creator) external payable {
+        require(msg.value > 0, "Must send some amount");
+        (bool success, ) = creator.call{value: msg.value}("");
+        require(success, "Transfer failed");
+        emit TipSent(msg.sender, creator, msg.value);
     }
 
-    /**
-     * @dev Splits a bill instantly among multiple friends.
-     * The sender pays their friends their portion to settle IOUs immediately.
-     */
-    function settleSplit(address[] calldata friends, uint256 amountPerFriend) external {
+    function settleSplit(address[] calldata friends, uint256 amountPerFriend) external payable {
         uint256 totalAmount = friends.length * amountPerFriend;
-        require(usdcToken.balanceOf(msg.sender) >= totalAmount, "Insufficient balance");
+        require(msg.value >= totalAmount, "Insufficient funds sent");
         
         for(uint i = 0; i < friends.length; i++) {
-            require(usdcToken.transferFrom(msg.sender, friends[i], amountPerFriend), "Transfer failed");
+            (bool success, ) = friends[i].call{value: amountPerFriend}("");
+            require(success, "Transfer failed");
+        }
+        
+        // Refund excess if any
+        if (msg.value > totalAmount) {
+            (bool refundSuccess, ) = msg.sender.call{value: msg.value - totalAmount}("");
+            require(refundSuccess, "Refund failed");
         }
         
         emit BillSplit(msg.sender, friends, amountPerFriend);
     }
 
-    /**
-     * @dev Opens a Pay-per-second stream (ArcStream).
-     * Sender locks a deposit.
-     */
-    function openStream(address receiver, uint256 ratePerSecond, uint256 deposit) external returns (bytes32) {
-        require(usdcToken.transferFrom(msg.sender, address(this), deposit), "Deposit failed");
-        
+    function openStream(address receiver, uint256 ratePerSecond) external payable returns (bytes32) {
+        require(msg.value > 0, "Deposit failed");
         bytes32 streamId = keccak256(abi.encodePacked(msg.sender, receiver, block.timestamp));
-        
         activeStreams[streamId] = Stream({
-            sender: msg.sender,
-            receiver: receiver,
-            ratePerSecond: ratePerSecond,
-            startTime: block.timestamp,
-            deposit: deposit,
-            active: true
+            sender: msg.sender, receiver: receiver, ratePerSecond: ratePerSecond,
+            startTime: block.timestamp, deposit: msg.value, active: true
         });
-        
         emit StreamOpened(streamId, msg.sender, receiver, ratePerSecond);
         return streamId;
     }
 
-    /**
-     * @dev Closes the stream and settles the exact amount based on seconds watched.
-     * Refunds the remainder of the deposit.
-     */
     function closeStream(bytes32 streamId) external {
         Stream storage stream = activeStreams[streamId];
-        require(stream.active, "Stream not active");
-        require(msg.sender == stream.sender || msg.sender == stream.receiver, "Unauthorized");
-        
-        uint256 secondsPassed = block.timestamp - stream.startTime;
-        uint256 cost = secondsPassed * stream.ratePerSecond;
-        
-        if (cost > stream.deposit) {
-            cost = stream.deposit; // Cap at deposit
-        }
-        
+        require(stream.active, "Not active");
+        uint256 cost = (block.timestamp - stream.startTime) * stream.ratePerSecond;
+        if (cost > stream.deposit) cost = stream.deposit;
         uint256 refund = stream.deposit - cost;
         stream.active = false;
         
-        // Settle payment
         if (cost > 0) {
-            require(usdcToken.transfer(stream.receiver, cost), "Payment failed");
+            (bool success, ) = stream.receiver.call{value: cost}("");
+            require(success, "Pay failed");
         }
-        // Refund remainder
         if (refund > 0) {
-            require(usdcToken.transfer(stream.sender, refund), "Refund failed");
+            (bool success, ) = stream.sender.call{value: refund}("");
+            require(success, "Refund failed");
         }
-        
         emit StreamClosed(streamId, cost);
     }
 }

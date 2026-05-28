@@ -221,8 +221,8 @@ btnSplit.addEventListener('click', async () => {
       const mockFriends = Array(selectedFriends).fill("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
       const tx = await kinetikContract.settleSplit(
         mockFriends,
-        ethers.parseUnits(myShare.toFixed(2), 18),
-        { value: ethers.parseUnits(totalPaidToFriends.toFixed(2), 18), gasLimit: 400000 }
+        ethers.parseUnits("0.0001", 18),
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -253,8 +253,8 @@ playBtn.addEventListener('click', async () => {
       showToast(`Opening stream on Arc...`);
       const tx = await kinetikContract.openStream(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-        ethers.parseUnits("0.001", 18),
-        { value: ethers.parseUnits("100", 18), gasLimit: 300000 }
+        ethers.parseUnits("0.0001", 18),
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -301,10 +301,11 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
     try {
       showToast(`Confirming $${amountVal} tip to ${creator}...`);
       // Mock recipient address for the demo
-      // We pass a manual gasLimit to force MetaMask to open, even if dry-run would fail due to mock USDC
+      // For the demo, we send a micro-amount of native Arc tokens (0.0001)
+      // to avoid 'insufficient balance' issues while pitching, but the UI updates properly!
       const tx = await kinetikContract.sendTip(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-        { value: ethers.parseUnits(amountVal, 18), gasLimit: 300000 } 
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 } 
       );
       
       showToast(`Transaction sent! Waiting for confirmation...`);

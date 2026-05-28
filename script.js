@@ -204,17 +204,36 @@ friendItems.forEach(item => {
 
 splitInput.addEventListener('input', calculateSplit);
 
-btnSplit.addEventListener('click', () => {
+btnSplit.addEventListener('click', async () => {
   const amount = parseFloat(splitInput.value) || 0;
   const selectedFriends = document.querySelectorAll('.friend-item.selected').length;
   if(selectedFriends === 0) return;
+  
+  if (!signer) return showToast("Connect Wallet First!");
   
   const myShare = amount / (selectedFriends + 1);
   const totalPaidToFriends = amount - myShare;
   
   if (totalPaidToFriends > 0) {
-    updateMainBalance(totalPaidToFriends);
-    showToast(`Settled $${totalPaidToFriends.toFixed(2)} instantly via Arc`);
+    try {
+      showToast(`Confirming split on Arc...`);
+      // Mock addresses for friends
+      const mockFriends = Array(selectedFriends).fill("0x742d35Cc6634C0532925a3b844Bc454e4438f44e");
+      const tx = await kinetikContract.settleSplit(
+        mockFriends,
+        ethers.parseUnits(myShare.toFixed(2), 18),
+        { gasLimit: 400000 }
+      );
+      
+      showToast(`Transaction sent! Waiting...`);
+      await tx.wait();
+      
+      updateMainBalance(totalPaidToFriends);
+      showToast(`Settled $${totalPaidToFriends.toFixed(2)} instantly via Arc`);
+    } catch (err) {
+      console.error(err);
+      showToast("Transaction Failed / Rejected");
+    }
   }
 });
 
@@ -226,23 +245,43 @@ let streamCost = 0;
 let streamInterval;
 const RATE_PER_SECOND = 0.001;
 
-playBtn.addEventListener('click', () => {
-  isPlaying = !isPlaying;
-  
-  if (isPlaying) {
-    playBtn.textContent = '⏸';
-    playBtn.style.color = '#22d3ee';
-    streamInterval = setInterval(() => {
-      streamCost += RATE_PER_SECOND;
-      streamCostEl.textContent = '$' + streamCost.toFixed(4);
-      // Visually drain main balance slightly for demo effect
-      mainBalance -= RATE_PER_SECOND;
-      balanceEl.textContent = mainBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
-    }, 1000);
+playBtn.addEventListener('click', async () => {
+  if (!isPlaying) {
+    if (!signer) return showToast("Connect Wallet First!");
+    
+    try {
+      showToast(`Opening stream on Arc...`);
+      const tx = await kinetikContract.openStream(
+        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        ethers.parseUnits("0.001", 18),
+        ethers.parseUnits("100", 18), // Deposit
+        { gasLimit: 300000 }
+      );
+      
+      showToast(`Transaction sent! Waiting...`);
+      await tx.wait();
+      showToast(`Stream Opened!`);
+      
+      // Start visual tick
+      isPlaying = true;
+      playBtn.textContent = '⏸';
+      playBtn.style.color = '#22d3ee';
+      streamInterval = setInterval(() => {
+        streamCost += RATE_PER_SECOND;
+        streamCostEl.textContent = '$' + streamCost.toFixed(4);
+        updateMainBalance(RATE_PER_SECOND);
+      }, 1000);
+      
+    } catch (err) {
+      console.error(err);
+      showToast("Stream Transaction Rejected");
+    }
   } else {
+    isPlaying = false;
     playBtn.textContent = '▶';
     playBtn.style.color = 'white';
     clearInterval(streamInterval);
+    showToast("Stream Paused/Closed.");
   }
 });
 
@@ -250,37 +289,35 @@ playBtn.addEventListener('click', () => {
 // Simple Tip Integration
 document.querySelectorAll('.tip-btn').forEach(btn => {
   btn.addEventListener('click', async (e) => {
-    const creator = e.target.parentElement.querySelector('h3').innerText;
+    // Prevent default and stop propagation in case there are other handlers
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const card = e.target.closest('.creator-card');
+    const creator = card ? card.querySelector('h3').innerText : "Creator";
+    const amountVal = e.target.getAttribute('data-amount') || "5.00";
     
     if (!signer) return showToast("Connect Wallet First!");
     
     try {
-      showToast(`Confirming tip to ${creator} on Arc...`);
+      showToast(`Confirming $${amountVal} tip to ${creator}...`);
       // Mock recipient address for the demo
       // We pass a manual gasLimit to force MetaMask to open, even if dry-run would fail due to mock USDC
       const tx = await kinetikContract.sendTip(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-        ethers.parseUnits("5", 18),
+        ethers.parseUnits(amountVal, 18),
         { gasLimit: 300000 } 
       );
       
       showToast(`Transaction sent! Waiting for confirmation...`);
       await tx.wait();
       showToast(`Tx Confirmed! Tipped ${creator}`);
-      updateMainBalance(5);
+      updateMainBalance(parseFloat(amountVal));
     } catch (err) {
       console.error(err);
       showToast("Transaction Failed / Rejected");
     }
     
     // Add simple click animation
-    btn.style.transform = 'scale(0.9)';
-    btn.style.background = 'rgba(34, 211, 238, 0.2)';
-    btn.style.borderColor = '#22d3ee';
-    setTimeout(() => {
-      btn.style.transform = 'scale(1)';
-      btn.style.background = 'rgba(255,255,255,0.05)';
-      btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-    }, 200);
   });
 });

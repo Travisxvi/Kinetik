@@ -7,7 +7,7 @@ const backToHome = document.getElementById('back-to-home');
 // Web3 Configuration
 const ARC_RPC_URL = "https://rpc.testnet.arc.network";
 const ARC_CHAIN_ID = 5042002;
-const KINETIK_CONTRACT_ADDRESS = "0xYourContractAddressHere"; // User will fill this in after deploying on Remix
+const KINETIK_CONTRACT_ADDRESS = "0x654D7cB8266785756F0a0bD5dafc2e50742e58B1";
 
 const kinetikABI = [
   "function sendTip(address creator, uint256 amount) external",

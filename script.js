@@ -232,7 +232,7 @@ btnSplit.addEventListener('click', async () => {
       const tx = await kinetikContract.settleSplit(
         mockFriends,
         ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000, chainId: ARC_CHAIN_ID }
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 400000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -264,7 +264,7 @@ playBtn.addEventListener('click', async () => {
       const tx = await kinetikContract.openStream(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
         ethers.parseUnits("0.0001", 18),
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000, chainId: ARC_CHAIN_ID }
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 }
       );
       
       showToast(`Transaction sent! Waiting...`);
@@ -315,7 +315,7 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
       // to avoid 'insufficient balance' issues while pitching, but the UI updates properly!
       const tx = await kinetikContract.sendTip(
         "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000, chainId: ARC_CHAIN_ID } 
+        { value: ethers.parseUnits("0.0001", 18), gasLimit: 300000 } 
       );
       
       showToast(`Transaction sent! Waiting for confirmation...`);

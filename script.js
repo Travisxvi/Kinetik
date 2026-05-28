@@ -100,10 +100,11 @@ if (connectWalletBtn) {
   connectWalletBtn.addEventListener('click', async () => {
     if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
       try {
-        // Resolve wallet conflicts if both Zerion and MetaMask are installed
         let ethProvider = window.ethereum;
         if (window.ethereum.providers) {
-          ethProvider = window.ethereum.providers.find(p => p.isMetaMask) || window.ethereum;
+          // Many wallets (like Zerion) falsely set isMetaMask=true to hijack connections.
+          // We must explicitly exclude them to find the true MetaMask extension.
+          ethProvider = window.ethereum.providers.find(p => p.isMetaMask && !p.isZerion && !p.isBraveWallet && !p.isCoinbaseWallet) || window.ethereum;
         }
 
         await ethProvider.request({ method: 'eth_requestAccounts' });

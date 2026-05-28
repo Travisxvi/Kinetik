@@ -107,7 +107,16 @@ if (connectWalletBtn) {
           ethProvider = window.ethereum.providers.find(p => p.isMetaMask && !p.isZerion && !p.isBraveWallet && !p.isCoinbaseWallet) || window.ethereum;
         }
 
-        await ethProvider.request({ method: 'eth_requestAccounts' });
+        // First check if already connected, otherwise request connection
+        let accounts = await ethProvider.request({ method: 'eth_accounts' });
+        if (!accounts || accounts.length === 0) {
+          accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
+        }
+        
+        // If still no accounts, the wallet is locked or rejecting the site
+        if (!accounts || accounts.length === 0) {
+          throw new Error("No accounts found. Please click the MetaMask extension icon to unlock it and manually connect to this site.");
+        }
         
         // Switch to Arc Testnet FIRST
         try {

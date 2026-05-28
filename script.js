@@ -16,7 +16,6 @@ const kinetikABI = [
   "function closeStream(bytes32 streamId) external"
 ];
 
-let isLiveMode = false;
 let provider;
 let signer;
 let kinetikContract;
@@ -94,27 +93,8 @@ function updateMainBalance(amount) {
   if(modalFullBalance) modalFullBalance.textContent = formattedStr;
 }
 
-// Live Mode Toggle & Wallet Connection Logic
-const modeToggle = document.getElementById('live-mode-toggle');
-const modeLabel = document.getElementById('mode-label');
+// Live Mode Wallet Connection Logic
 const connectWalletBtn = document.getElementById('connect-wallet-btn');
-
-if (modeToggle) {
-  modeToggle.addEventListener('change', (e) => {
-    isLiveMode = e.target.checked;
-    if (isLiveMode) {
-      modeLabel.textContent = "Live";
-      document.querySelector('.mode-toggle').classList.add('live');
-      connectWalletBtn.style.display = 'block';
-      balanceEl.textContent = "0.00"; // Reset until connected
-    } else {
-      modeLabel.textContent = "Demo";
-      document.querySelector('.mode-toggle').classList.remove('live');
-      connectWalletBtn.style.display = 'none';
-      balanceEl.textContent = mainBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
-    }
-  });
-}
 
 if (connectWalletBtn) {
   connectWalletBtn.addEventListener('click', async () => {
@@ -148,6 +128,8 @@ if (connectWalletBtn) {
         
         const address = await signer.getAddress();
         connectWalletBtn.textContent = address.substring(0, 6) + "..." + address.substring(38);
+        connectWalletBtn.style.background = 'var(--accent)';
+        connectWalletBtn.style.color = '#000';
         showToast("Wallet Connected to Arc Testnet!");
         
         balanceEl.textContent = "500.00"; // Mock USDC testnet balance
@@ -270,23 +252,25 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
   btn.addEventListener('click', async (e) => {
     const creator = e.target.parentElement.querySelector('h3').innerText;
     
-    if (isLiveMode) {
-      if (!signer) return showToast("Connect Wallet First!");
-      if (KINETIK_CONTRACT_ADDRESS === "0xYourContractAddressHere") return showToast("Deploy Contract First!");
-      try {
-        showToast(`Confirming tip to ${creator} on Arc...`);
-        // Mock recipient address for the demo
-        const tx = await kinetikContract.sendTip("0x742d35Cc6634C0532925a3b844Bc454e4438f44e", ethers.parseUnits("5", 18));
-        await tx.wait();
-        showToast(`Tx Confirmed! Tipped ${creator}`);
-        updateMainBalance(5);
-      } catch (err) {
-        console.error(err);
-        showToast("Transaction Failed / Rejected");
-      }
-    } else {
+    if (!signer) return showToast("Connect Wallet First!");
+    
+    try {
+      showToast(`Confirming tip to ${creator} on Arc...`);
+      // Mock recipient address for the demo
+      // We pass a manual gasLimit to force MetaMask to open, even if dry-run would fail due to mock USDC
+      const tx = await kinetikContract.sendTip(
+        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
+        ethers.parseUnits("5", 18),
+        { gasLimit: 300000 } 
+      );
+      
+      showToast(`Transaction sent! Waiting for confirmation...`);
+      await tx.wait();
+      showToast(`Tx Confirmed! Tipped ${creator}`);
       updateMainBalance(5);
-      showToast(`Sent 5 USDC to ${creator}!`);
+    } catch (err) {
+      console.error(err);
+      showToast("Transaction Failed / Rejected");
     }
     
     // Add simple click animation

@@ -100,33 +100,41 @@ if (connectWalletBtn) {
   connectWalletBtn.addEventListener('click', async () => {
     if (typeof window.ethereum !== 'undefined' && typeof ethers !== 'undefined') {
       try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        // Resolve wallet conflicts if both Zerion and MetaMask are installed
+        let ethProvider = window.ethereum;
+        if (window.ethereum.providers) {
+          ethProvider = window.ethereum.providers.find(p => p.isMetaMask) || window.ethereum;
+        }
+
+        await ethProvider.request({ method: 'eth_requestAccounts' });
         
         // Switch to Arc Testnet FIRST
         try {
-          await window.ethereum.request({
+          await ethProvider.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: ethers.toBeHex(ARC_CHAIN_ID) }],
           });
         } catch (switchError) {
           if (switchError.code === 4902) {
-            await window.ethereum.request({
+            await ethProvider.request({
               method: 'wallet_addEthereumChain',
               params: [{
                 chainId: ethers.toBeHex(ARC_CHAIN_ID),
                 chainName: 'Arc Testnet',
                 rpcUrls: [ARC_RPC_URL],
-                nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 }
+                nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 } // Standardized to ARC
               }],
             });
+          } else {
+            throw switchError; // Throw if user rejected the switch
           }
         }
         
-        // Wait briefly for the wallet's internal state to update to the new chain
+        // Wait briefly for the wallet's internal state to update
         await new Promise(r => setTimeout(r, 500));
         
         // Initialize Ethers with 'any' to handle dynamic network changes gracefully
-        provider = new ethers.BrowserProvider(window.ethereum, 'any');
+        provider = new ethers.BrowserProvider(ethProvider, 'any');
         signer = await provider.getSigner();
         kinetikContract = new ethers.Contract(KINETIK_CONTRACT_ADDRESS, kinetikABI, signer);
         
@@ -142,12 +150,15 @@ if (connectWalletBtn) {
         connectWalletBtn.style.color = '#000';
         showToast("Wallet Connected to Arc Testnet!");
         
-        balanceEl.textContent = "500.00"; // Mock USDC testnet balance
+        balanceEl.textContent = "500.00"; // Mock testnet balance
         mainBalance = 500.00;
         
-      } catch (error) {
-        console.error("Connection failed", error);
-        showToast("Connection failed");
+      } catch (err) {
+        console.error("Connection Error:", err);
+        // Show the exact error message so we know what failed
+        let errorMsg = "Connection Failed!";
+        if (err.message) errorMsg = err.message.substring(0, 40);
+        showToast(errorMsg);
       }
     } else {
       showToast("Please install MetaMask!");

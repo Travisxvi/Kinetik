@@ -322,8 +322,7 @@ document.querySelectorAll('.tip-btn').forEach(btn => {
           from: fromAddress,
           to: KINETIK_CONTRACT_ADDRESS,
           value: "0x38D7EA4C68000", // 0.0001 ETH in hex
-          data: txData,
-          chainId: "0x4cef52" // strictly 5042002
+          data: txData
         }],
       });
       
